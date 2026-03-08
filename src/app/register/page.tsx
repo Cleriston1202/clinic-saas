@@ -32,7 +32,7 @@ export default function RegisterPage() {
     } = await supabase.auth.getSession();
 
     if (session?.access_token) {
-      await fetch("/api/settings/clinic", {
+      const clinicResponse = await fetch("/api/settings/clinic", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,6 +40,16 @@ export default function RegisterPage() {
         },
         body: JSON.stringify({ name: clinicName, plan: "starter", email }),
       });
+
+      if (!clinicResponse.ok) {
+        setLoading(false);
+        setError("Conta criada, mas nao foi possivel inicializar a clinica. Acesse Configuracoes e tente novamente.");
+        return;
+      }
+    } else {
+      setLoading(false);
+      setError("Conta criada, mas sem sessao ativa. Faca login e finalize em Configuracoes.");
+      return;
     }
 
     setLoading(false);

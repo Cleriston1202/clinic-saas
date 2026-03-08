@@ -12,13 +12,31 @@ export default function DoctorsPage() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [name, setName] = useState("");
   const [specialty, setSpecialty] = useState("");
+  const [message, setMessage] = useState("");
+
+  const parseError = (raw: string) => {
+    try {
+      const parsed = JSON.parse(raw) as { error?: string };
+      return parsed.error ?? raw;
+    } catch {
+      return raw;
+    }
+  };
 
   const loadDoctors = async (token: string) => {
     const response = await fetch("/api/doctors", {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) {
+      const next = parseError(await response.text());
+      setMessage(next);
+      if (next.includes("Clinic profile not initialized")) {
+        router.push("/settings");
+      }
+      return;
+    }
+    setMessage("");
     setDoctors(await response.json());
   };
 
@@ -29,7 +47,7 @@ export default function DoctorsPage() {
       return;
     }
 
-    loadDoctors(accessToken).catch(console.error);
+    loadDoctors(accessToken);
   }, [accessToken, loading, router]);
 
   const handleCreate = async (event: FormEvent) => {
@@ -46,12 +64,17 @@ export default function DoctorsPage() {
     });
 
     if (!response.ok) {
-      alert(await response.text());
+      const next = parseError(await response.text());
+      setMessage(next);
+      if (next.includes("Clinic profile not initialized")) {
+        router.push("/settings");
+      }
       return;
     }
 
     setName("");
     setSpecialty("");
+    setMessage("");
     await loadDoctors(accessToken);
   };
 
@@ -59,6 +82,7 @@ export default function DoctorsPage() {
     <main className="mx-auto max-w-6xl px-6 py-6">
       <AppNav />
       <h1 className="mb-4 text-2xl font-semibold">Médicos</h1>
+      {message ? <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">{message}</p> : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <form onSubmit={handleCreate} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">

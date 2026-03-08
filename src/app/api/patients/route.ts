@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   const { supabase, profile } = context;
   if (!profile?.clinic_id) {
-    return NextResponse.json({ error: "Clinic profile not initialized." }, { status: 400 });
+    return NextResponse.json({ error: "Clinic profile not initialized. Configure sua clinica em /settings." }, { status: 400 });
   }
 
   const body = await request.json();

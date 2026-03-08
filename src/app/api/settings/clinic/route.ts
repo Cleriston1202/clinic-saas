@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserAndClinic } from "@/app/api/_utils";
+import { createSupabaseServiceClient } from "@/lib/supabase";
+
+function hasPrivilegedServiceKey() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) return false;
+
+  // Supabase publishable keys cannot bypass RLS.
+  return !key.startsWith("sb_publishable_");
+}
 
 export async function GET(request: NextRequest) {
   const context = await getUserAndClinic(request);
@@ -26,12 +35,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: context.error }, { status: context.status });
   }
 
-  const { user, supabase, profile } = context;
+  const { user, profile, supabase: authedSupabase } = context;
   const body = await request.json();
 
   if (profile?.clinic_id) {
     return NextResponse.json({ error: "Clinic already initialized." }, { status: 400 });
   }
+
+  const supabase = hasPrivilegedServiceKey() ? createSupabaseServiceClient() : authedSupabase;
 
   const { data: clinic, error: clinicError } = await supabase
     .from("clinics")
@@ -40,6 +51,16 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (clinicError) {
+    if (clinicError.message.includes("row-level security policy") && clinicError.message.includes("clinics")) {
+      return NextResponse.json(
+        {
+          error:
+            "Nao foi possivel criar a clinica por politica de seguranca (RLS). Aplique o schema SQL no Supabase e garanta a policy clinic_insert_authenticated.",
+        },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json({ error: clinicError.message }, { status: 400 });
   }
 

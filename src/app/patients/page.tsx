@@ -14,6 +14,7 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Patient | null>(null);
+  const [message, setMessage] = useState("");
 
   const filteredPatients = useMemo(
     () => patients.filter((patient) => patient.name.toLowerCase().includes(search.toLowerCase())),
@@ -21,8 +22,17 @@ export default function PatientsPage() {
   );
 
   const loadPatients = useCallback(async (token: string) => {
-    const data = await patientService.list(token, search || undefined);
-    setPatients(data);
+    try {
+      const data = await patientService.list(token, search || undefined);
+      setPatients(data);
+      setMessage("");
+    } catch (error) {
+      const next = error instanceof Error ? error.message : "Falha ao carregar pacientes.";
+      setMessage(next);
+      if (next.includes("Clinic profile not initialized.")) {
+        router.push("/settings");
+      }
+    }
   }, [search]);
 
   useEffect(() => {
@@ -32,13 +42,14 @@ export default function PatientsPage() {
       return;
     }
 
-    loadPatients(accessToken).catch(console.error);
+    loadPatients(accessToken);
   }, [accessToken, loading, loadPatients, router]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-6">
       <AppNav />
       <h1 className="mb-4 text-2xl font-semibold">Pacientes</h1>
+      {message ? <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">{message}</p> : null}
 
       <div className="mb-4 grid gap-4 md:grid-cols-2">
         <PatientForm
@@ -46,13 +57,22 @@ export default function PatientsPage() {
           initialValue={selected ?? undefined}
           onSubmit={async (payload) => {
             if (!accessToken) return;
-            if (selected) {
-              await patientService.update(accessToken, selected.id, payload);
-              setSelected(null);
-            } else {
-              await patientService.create(accessToken, payload);
+            try {
+              if (selected) {
+                await patientService.update(accessToken, selected.id, payload);
+                setSelected(null);
+              } else {
+                await patientService.create(accessToken, payload);
+              }
+              setMessage("");
+              await loadPatients(accessToken);
+            } catch (error) {
+              const next = error instanceof Error ? error.message : "Falha ao salvar paciente.";
+              setMessage(next);
+              if (next.includes("Clinic profile not initialized.")) {
+                router.push("/settings");
+              }
             }
-            await loadPatients(accessToken);
           }}
         />
 

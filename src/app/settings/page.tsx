@@ -19,12 +19,21 @@ export default function SettingsPage() {
   const [plan, setPlan] = useState("starter");
   const [message, setMessage] = useState("");
 
+  const parseError = (raw: string) => {
+    try {
+      const parsed = JSON.parse(raw) as { error?: string };
+      return parsed.error ?? raw;
+    } catch {
+      return raw;
+    }
+  };
+
   const loadClinic = async (token: string) => {
     const response = await fetch("/api/settings/clinic", {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) throw new Error(parseError(await response.text()));
 
     const data = await response.json();
     if (data.clinic) {
@@ -41,7 +50,13 @@ export default function SettingsPage() {
       return;
     }
 
-    loadClinic(accessToken).catch(console.error);
+    loadClinic(accessToken).catch((error: unknown) => {
+      const next = error instanceof Error ? error.message : "Falha ao carregar configuracoes da clinica.";
+      setMessage(next);
+      if (next.includes("Clinic profile not initialized")) {
+        router.push("/settings");
+      }
+    });
   }, [accessToken, loading, router]);
 
   const handleSubmit = async (event: FormEvent) => {
@@ -58,7 +73,7 @@ export default function SettingsPage() {
     });
 
     if (!response.ok) {
-      setMessage(await response.text());
+      setMessage(parseError(await response.text()));
       return;
     }
 

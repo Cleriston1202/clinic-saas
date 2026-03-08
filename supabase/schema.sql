@@ -1,8 +1,25 @@
 create extension if not exists pgcrypto;
 
-create type public.user_role as enum ('admin', 'staff');
-create type public.appointment_status as enum ('scheduled', 'confirmed', 'cancelled');
-create type public.payment_status as enum ('pending', 'paid', 'failed', 'refunded');
+do $$
+begin
+  if not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'user_role') then
+    create type public.user_role as enum ('admin', 'staff');
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'appointment_status') then
+    create type public.appointment_status as enum ('scheduled', 'confirmed', 'cancelled');
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'payment_status') then
+    create type public.payment_status as enum ('pending', 'paid', 'failed', 'refunded');
+  end if;
+end $$;
 
 create table if not exists public.clinics (
   id uuid primary key default gen_random_uuid(),
@@ -80,15 +97,18 @@ alter table public.doctors enable row level security;
 alter table public.appointments enable row level security;
 alter table public.payments enable row level security;
 
+drop policy if exists "clinic_select_own" on public.clinics;
 create policy "clinic_select_own"
 on public.clinics for select
 using (id = public.current_clinic_id());
 
+drop policy if exists "clinic_insert_authenticated" on public.clinics;
 create policy "clinic_insert_authenticated"
 on public.clinics for insert
 to authenticated
 with check (true);
 
+drop policy if exists "clinic_update_admin" on public.clinics;
 create policy "clinic_update_admin"
 on public.clinics for update
 using (
@@ -108,15 +128,18 @@ with check (
   )
 );
 
-create policy "users_select_same_clinic"
+drop policy if exists "users_select_self" on public.users;
+create policy "users_select_self"
 on public.users for select
-using (clinic_id = public.current_clinic_id());
+using (id = auth.uid());
 
+drop policy if exists "users_insert_self" on public.users;
 create policy "users_insert_self"
 on public.users for insert
 to authenticated
 with check (id = auth.uid());
 
+drop policy if exists "users_update_admin_or_self" on public.users;
 create policy "users_update_admin_or_self"
 on public.users for update
 using (
@@ -133,21 +156,25 @@ with check (
   clinic_id = public.current_clinic_id()
 );
 
+drop policy if exists "patients_tenant_all" on public.patients;
 create policy "patients_tenant_all"
 on public.patients for all
 using (clinic_id = public.current_clinic_id())
 with check (clinic_id = public.current_clinic_id());
 
+drop policy if exists "doctors_tenant_all" on public.doctors;
 create policy "doctors_tenant_all"
 on public.doctors for all
 using (clinic_id = public.current_clinic_id())
 with check (clinic_id = public.current_clinic_id());
 
+drop policy if exists "appointments_tenant_all" on public.appointments;
 create policy "appointments_tenant_all"
 on public.appointments for all
 using (clinic_id = public.current_clinic_id())
 with check (clinic_id = public.current_clinic_id());
 
+drop policy if exists "payments_tenant_all" on public.payments;
 create policy "payments_tenant_all"
 on public.payments for all
 using (clinic_id = public.current_clinic_id())

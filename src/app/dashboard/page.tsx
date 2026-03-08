@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { accessToken, loading } = useSupabaseSession();
   const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (loading) return;
@@ -30,17 +31,35 @@ export default function DashboardPage() {
       cache: "no-store",
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) {
+          const raw = await response.text();
+          try {
+            const parsed = JSON.parse(raw) as { error?: string };
+            throw new Error(parsed.error ?? raw);
+          } catch {
+            throw new Error(raw);
+          }
+        }
         return response.json();
       })
-      .then(setMetrics)
-      .catch(console.error);
+      .then((data) => {
+        setMetrics(data);
+        setMessage("");
+      })
+      .catch((error: unknown) => {
+        const next = error instanceof Error ? error.message : "Falha ao carregar metricas.";
+        setMessage(next);
+        if (next.includes("Clinic profile not initialized")) {
+          router.push("/settings");
+        }
+      });
   }, [accessToken, loading, router]);
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-6">
       <AppNav />
       <h1 className="mb-4 text-2xl font-semibold">Painel</h1>
+      {message ? <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">{message}</p> : null}
       <div className="grid gap-4 md:grid-cols-4">
         <MetricCard label="Total de pacientes" value={String(metrics.totalPatients)} />
         <MetricCard label="Consultas de hoje" value={String(metrics.appointmentsToday)} />

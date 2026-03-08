@@ -12,7 +12,13 @@ async function request<T>(url: string, accessToken: string, init?: RequestInit):
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const raw = await response.text();
+    try {
+      const parsed = JSON.parse(raw) as { error?: string };
+      throw new Error(parsed.error ?? raw);
+    } catch {
+      throw new Error(raw);
+    }
   }
 
   return response.json();
