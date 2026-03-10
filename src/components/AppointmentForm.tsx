@@ -87,7 +87,7 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
       return;
     }
     if (!doctorId) {
-      setFormError("Selecione um medico.");
+      setFormError("Selecione um dentista.");
       return;
     }
     if (!startDate || !startHour || !endDate || !endHour) {
@@ -159,7 +159,7 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
       </label>
 
       <label className="grid gap-1 text-sm text-slate-700">
-        Medico
+        Dentista
         <select
           className="rounded-md border border-slate-300 px-3 py-2 text-sm"
           value={doctorId}
@@ -170,7 +170,7 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
           disabled={doctors.length === 0}
           required
         >
-        <option value="">Selecione o médico</option>
+        <option value="">Selecione o dentista</option>
         {doctors.map((doctor) => (
           <option key={doctor.id} value={doctor.id}>
             {doctor.name} - {doctor.specialty}
@@ -258,7 +258,7 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
       {scheduleSummary ? <p className="text-xs text-slate-700">Agendado para: {scheduleSummary}</p> : null}
 
       {patients.length === 0 || doctors.length === 0 ? (
-        <p className="text-xs text-slate-600">Para criar consulta, cadastre pelo menos 1 paciente e 1 medico.</p>
+        <p className="text-xs text-slate-600">Para criar consulta, cadastre pelo menos 1 paciente e 1 dentista.</p>
       ) : null}
 
       {durationLabel ? <p className="text-xs font-medium text-slate-700">{durationLabel}</p> : null}

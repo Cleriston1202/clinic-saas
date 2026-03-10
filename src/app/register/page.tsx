@@ -60,13 +60,15 @@ export default function RegisterPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
-      <form onSubmit={handleSubmit} className="w-full space-y-3 rounded-lg border border-slate-200 bg-white p-6">
-        <h1 className="text-2xl font-semibold">Cadastrar Clínica</h1>
-        <input className="w-full rounded-md border border-slate-300 px-3 py-2" placeholder="Nome da clínica" value={clinicName} onChange={(e) => setClinicName(e.target.value)} required />
-        <input className="w-full rounded-md border border-slate-300 px-3 py-2" type="email" placeholder="Email do administrador" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="w-full rounded-md border border-slate-300 px-3 py-2" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+      <form onSubmit={handleSubmit} className="surface-card w-full space-y-3 rounded-2xl p-6">
+        <p className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">Primeiro acesso</p>
+        <h1 className="text-3xl font-bold">Cadastrar Clinica</h1>
+        <p className="text-sm text-slate-600">Crie sua conta de administrador e inicie a configuracao da clinica.</p>
+        <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" placeholder="Nome da clinica" value={clinicName} onChange={(e) => setClinicName(e.target.value)} required />
+        <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" type="email" placeholder="Email do administrador" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        <button disabled={loading} className="w-full rounded-md bg-slate-900 px-3 py-2 text-white disabled:opacity-60">
+        <button disabled={loading} className="brand-button w-full rounded-md px-3 py-2 text-white disabled:opacity-60">
           {loading ? "Criando conta..." : "Criar conta"}
         </button>
         <p className="text-sm text-slate-600">

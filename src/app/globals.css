@@ -4,8 +4,75 @@
 
 :root {
   color-scheme: light;
+  --bg: #f4f7f2;
+  --bg-accent: #e8f2ea;
+  --surface: #ffffff;
+  --surface-soft: #f6faf7;
+  --text: #10221a;
+  --muted: #5f7469;
+  --brand: #0f766e;
+  --brand-strong: #0b5f58;
+  --border: #d4e4d8;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900;
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(15, 118, 110, 0.14), transparent 28%),
+    radial-gradient(circle at 88% 18%, rgba(34, 197, 94, 0.12), transparent 26%),
+    linear-gradient(180deg, var(--bg-accent) 0%, var(--bg) 52%, #f8faf9 100%);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+input,
+select,
+textarea {
+  @apply transition-colors duration-150;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.25);
+  outline-offset: 1px;
+}
+
+button {
+  @apply transition-all duration-150;
+}
+
+.surface-card {
+  background: color-mix(in srgb, var(--surface) 82%, #ecf6f0 18%);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 26px rgba(16, 34, 26, 0.07);
+}
+
+.brand-button {
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+}
+
+.brand-button:hover {
+  filter: brightness(1.02);
+}
+
+.rbc-calendar {
+  border-radius: 0.85rem;
+  overflow: hidden;
+}
+
+.rbc-toolbar {
+  margin-bottom: 0.8rem;
+}
+
+.rbc-time-view,
+.rbc-month-view {
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--surface) 90%, var(--surface-soft) 10%);
 }

@@ -81,19 +81,19 @@ export default function DoctorsPage() {
   return (
     <main className="mx-auto max-w-6xl px-6 py-6">
       <AppNav />
-      <h1 className="mb-4 text-2xl font-semibold">Médicos</h1>
+      <h1 className="mb-4 text-2xl font-semibold">Dentistas</h1>
       {message ? <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">{message}</p> : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <form onSubmit={handleCreate} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-sm font-semibold">Criar médico</h2>
-          <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Nome do médico" value={name} onChange={(e) => setName(e.target.value)} required />
+          <h2 className="text-sm font-semibold">Criar dentista</h2>
+          <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Nome do dentista" value={name} onChange={(e) => setName(e.target.value)} required />
           <input className="rounded-md border border-slate-300 px-3 py-2 text-sm" placeholder="Especialidade" value={specialty} onChange={(e) => setSpecialty(e.target.value)} required />
-          <button className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white">Criar médico</button>
+          <button className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white">Criar dentista</button>
         </form>
 
         <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="mb-2 text-sm font-semibold">Lista de médicos</h2>
+          <h2 className="mb-2 text-sm font-semibold">Lista de dentistas</h2>
           <div className="space-y-2">
             {doctors.map((doctor) => (
               <div key={doctor.id} className="rounded-md border border-slate-200 px-3 py-2">

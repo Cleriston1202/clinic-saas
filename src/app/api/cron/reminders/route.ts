@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const patient = firstRelation(appointment.patient as PersonRelation | null);
     const doctor = firstRelation(appointment.doctor as DoctorRelation | null);
     const patientName = patient?.name ?? "Paciente";
-    const doctorName = doctor?.name ?? "Médico";
+    const doctorName = doctor?.name ?? "Dentista";
     const phone = patient?.phone ?? "";
     const message = formatReminderMessage(patientName, doctorName, new Date(appointment.start_time));
 

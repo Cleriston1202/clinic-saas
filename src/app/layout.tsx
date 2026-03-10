@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
-const inter = Inter({
+const manrope = Manrope({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const mono = Roboto_Mono({
+const mono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Clinic SaaS",
-  description: "Plataforma multi-tenant de agendamento para clínicas",
+  title: "Clinica SaaS",
+  description: "Gestao inteligente para agendamento, pacientes e operacao clinica.",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${inter.variable} ${mono.variable} antialiased`}
+        className={`${manrope.variable} ${mono.variable} antialiased`}
       >
         {children}
       </body>

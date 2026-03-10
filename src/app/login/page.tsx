@@ -33,12 +33,14 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
-      <form onSubmit={handleSubmit} className="w-full space-y-3 rounded-lg border border-slate-200 bg-white p-6">
-        <h1 className="text-2xl font-semibold">Entrar</h1>
-        <input className="w-full rounded-md border border-slate-300 px-3 py-2" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <input className="w-full rounded-md border border-slate-300 px-3 py-2" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      <form onSubmit={handleSubmit} className="surface-card w-full space-y-3 rounded-2xl p-6">
+        <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">Acesso seguro</p>
+        <h1 className="text-3xl font-bold">Entrar</h1>
+        <p className="text-sm text-slate-600">Acesse o painel da sua clinica para gerenciar operacao e agenda.</p>
+        <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <input className="w-full rounded-md border border-slate-300 bg-white px-3 py-2" type="password" placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required />
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        <button disabled={loading} className="w-full rounded-md bg-slate-900 px-3 py-2 text-white disabled:opacity-60">
+        <button disabled={loading} className="brand-button w-full rounded-md px-3 py-2 text-white disabled:opacity-60">
           {loading ? "Entrando..." : "Entrar"}
         </button>
         <p className="text-sm text-slate-600">
