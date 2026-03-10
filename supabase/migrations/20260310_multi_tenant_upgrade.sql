@@ -11,24 +11,24 @@ do $$
 begin
   if not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'appointment_status') then
     create type public.appointment_status as enum ('scheduled', 'confirmed', 'completed', 'canceled');
+  elsif exists (
+    select 1 from pg_enum e
+    join pg_type t on t.oid = e.enumtypid
+    where t.typnamespace = 'public'::regnamespace
+      and t.typname = 'appointment_status'
+      and e.enumlabel = 'cancelled'
+  ) then
+    begin
+      alter type public.appointment_status rename value 'cancelled' to 'canceled';
+    exception
+      when others then
+        null;
+    end;
   end if;
 end $$;
 
-do $$
-begin
-  if not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'payment_status') then
-    create type public.payment_status as enum ('pending', 'paid', 'failed', 'refunded');
-  end if;
-end $$;
-
-create table if not exists public.clinics (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  phone text,
-  email text,
-  plan text not null default 'starter',
-  created_at timestamptz not null default now()
-);
+alter table if exists public.clinics add column if not exists phone text;
+alter table if exists public.clinics add column if not exists email text;
 
 create table if not exists public.clinic_members (
   id uuid primary key default gen_random_uuid(),
@@ -39,48 +39,20 @@ create table if not exists public.clinic_members (
   unique (clinic_id, user_id)
 );
 
-create table if not exists public.users (
-  id uuid primary key references auth.users(id) on delete cascade,
-  clinic_id uuid references public.clinics(id) on delete cascade,
-  email text not null unique,
-  role text not null default 'receptionist',
-  created_at timestamptz not null default now()
-);
+-- Drop legacy policies before altering users.role type.
+-- Existing policies from previous versions may depend on the old enum type.
+drop policy if exists "clinic_update_admin" on public.clinics;
+drop policy if exists "users_update_admin_or_self" on public.users;
 
-create table if not exists public.patients (
-  id uuid primary key default gen_random_uuid(),
-  clinic_id uuid not null references public.clinics(id) on delete cascade,
-  name text not null,
-  phone text,
-  email text,
-  birth_date date,
-  notes text,
-  created_at timestamptz not null default now()
-);
+alter table if exists public.users alter column clinic_id drop not null;
+alter table if exists public.users alter column role type text using role::text;
 
-create table if not exists public.doctors (
-  id uuid primary key default gen_random_uuid(),
-  clinic_id uuid not null references public.clinics(id) on delete cascade,
-  name text not null,
-  specialty text not null,
-  created_at timestamptz not null default now()
-);
+alter table if exists public.patients add column if not exists notes text;
 
-create table if not exists public.appointments (
-  id uuid primary key default gen_random_uuid(),
-  clinic_id uuid not null references public.clinics(id) on delete cascade,
-  patient_id uuid not null references public.patients(id) on delete restrict,
-  doctor_id uuid references public.doctors(id) on delete restrict,
-  professional_id uuid references public.doctors(id) on delete restrict,
-  service_id uuid,
-  appointment_type text not null default 'general',
-  start_time timestamptz not null,
-  end_time timestamptz not null,
-  status public.appointment_status not null default 'scheduled',
-  notes text,
-  created_at timestamptz not null default now(),
-  constraint appointment_time_check check (end_time > start_time)
-);
+alter table if exists public.appointments alter column doctor_id drop not null;
+alter table if exists public.appointments add column if not exists professional_id uuid references public.doctors(id) on delete restrict;
+alter table if exists public.appointments add column if not exists service_id uuid;
+alter table if exists public.appointments add column if not exists appointment_type text not null default 'general';
 
 create table if not exists public.services (
   id uuid primary key default gen_random_uuid(),
@@ -88,16 +60,6 @@ create table if not exists public.services (
   name text not null,
   price numeric(12, 2) not null default 0,
   duration_minutes integer not null default 30,
-  created_at timestamptz not null default now()
-);
-
-create table if not exists public.payments (
-  id uuid primary key default gen_random_uuid(),
-  clinic_id uuid not null references public.clinics(id) on delete cascade,
-  appointment_id uuid not null references public.appointments(id) on delete cascade,
-  amount numeric(12, 2) not null,
-  payment_method text,
-  status public.payment_status not null default 'pending',
   created_at timestamptz not null default now()
 );
 
@@ -116,14 +78,11 @@ begin
   end if;
 end $$;
 
+alter table if exists public.payments add column if not exists payment_method text;
+
 create index if not exists clinic_members_clinic_idx on public.clinic_members(clinic_id);
 create index if not exists clinic_members_user_idx on public.clinic_members(user_id);
-create index if not exists users_clinic_idx on public.users(clinic_id);
-create index if not exists patients_clinic_idx on public.patients(clinic_id);
-create index if not exists doctors_clinic_idx on public.doctors(clinic_id);
 create index if not exists services_clinic_idx on public.services(clinic_id);
-create index if not exists appointments_clinic_start_idx on public.appointments(clinic_id, start_time);
-create index if not exists payments_clinic_created_idx on public.payments(clinic_id, created_at);
 
 create or replace function public.current_clinic_id()
 returns uuid
@@ -134,6 +93,10 @@ as $$
   from public.users u
   where u.id = auth.uid();
 $$;
+
+update public.appointments
+set professional_id = doctor_id
+where professional_id is null and doctor_id is not null;
 
 insert into public.clinic_members (clinic_id, user_id, role)
 select u.clinic_id, u.id,
@@ -242,9 +205,7 @@ using (
       and cm.role = 'admin'
   )
 )
-with check (
-  clinic_id = public.current_clinic_id()
-);
+with check (clinic_id = public.current_clinic_id());
 
 drop policy if exists "patients_tenant_all" on public.patients;
 create policy "patients_tenant_all"

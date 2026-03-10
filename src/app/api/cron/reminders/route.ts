@@ -37,8 +37,8 @@ export async function GET(request: NextRequest) {
 
   const { data: appointments, error } = await supabase
     .from("appointments")
-    .select("id,start_time,patient:patients(name,phone),doctor:doctors(name)")
-    .neq("status", "cancelled")
+    .select("id,start_time,patient:patients(name,phone),doctor:doctors!appointments_professional_id_fkey(name)")
+    .neq("status", "canceled")
     .lte("start_time", windowEnd);
 
   if (error) {

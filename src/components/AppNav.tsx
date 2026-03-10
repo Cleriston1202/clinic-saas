@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+import { buildAccessTokenCookie } from "@/lib/auth/cookies";
 
 const links = [
   { href: "/dashboard", label: "Painel" },
@@ -19,6 +20,7 @@ export default function AppNav() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    document.cookie = buildAccessTokenCookie(null);
     router.push("/login");
   };
 

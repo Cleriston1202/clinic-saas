@@ -1,10 +1,19 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { Doctor } from "@/types/database";
+
+const parseError = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw) as { error?: string };
+    return parsed.error ?? raw;
+  } catch {
+    return raw;
+  }
+};
 
 export default function DoctorsPage() {
   const router = useRouter();
@@ -14,16 +23,7 @@ export default function DoctorsPage() {
   const [specialty, setSpecialty] = useState("");
   const [message, setMessage] = useState("");
 
-  const parseError = (raw: string) => {
-    try {
-      const parsed = JSON.parse(raw) as { error?: string };
-      return parsed.error ?? raw;
-    } catch {
-      return raw;
-    }
-  };
-
-  const loadDoctors = async (token: string) => {
+  const loadDoctors = useCallback(async (token: string) => {
     const response = await fetch("/api/doctors", {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
@@ -38,7 +38,7 @@ export default function DoctorsPage() {
     }
     setMessage("");
     setDoctors(await response.json());
-  };
+  }, [router]);
 
   useEffect(() => {
     if (loading) return;
@@ -48,7 +48,7 @@ export default function DoctorsPage() {
     }
 
     loadDoctors(accessToken);
-  }, [accessToken, loading, router]);
+  }, [accessToken, loading, loadDoctors, router]);
 
   const handleCreate = async (event: FormEvent) => {
     event.preventDefault();

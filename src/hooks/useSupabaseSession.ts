@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
+import { buildAccessTokenCookie } from "@/lib/auth/cookies";
 
 export function useSupabaseSession() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -17,6 +18,7 @@ export function useSupabaseSession() {
       if (!mounted) return;
       setSession(data.session);
       setUser(data.session?.user ?? null);
+      document.cookie = buildAccessTokenCookie(data.session?.access_token ?? null);
       setLoading(false);
     });
 
@@ -25,6 +27,7 @@ export function useSupabaseSession() {
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
+      document.cookie = buildAccessTokenCookie(nextSession?.access_token ?? null);
       setLoading(false);
     });
 

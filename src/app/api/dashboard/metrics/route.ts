@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const month = monthBounds();
   const now = new Date().toISOString();
 
-  const [{ count: totalPatients }, { count: appointmentsToday }, { count: upcomingAppointments }, paymentsResult] = await Promise.all([
+  const [{ count: totalPatients }, { count: appointmentsToday }, { count: upcomingAppointments }, { count: canceledAppointments }, paymentsResult] = await Promise.all([
     supabase.from("patients").select("id", { count: "exact", head: true }),
     supabase
       .from("appointments")
@@ -39,7 +39,13 @@ export async function GET(request: NextRequest) {
       .from("appointments")
       .select("id", { count: "exact", head: true })
       .gte("start_time", now)
-      .neq("status", "cancelled"),
+      .neq("status", "canceled"),
+    supabase
+      .from("appointments")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "canceled")
+      .gte("start_time", month.start)
+      .lte("start_time", month.end),
     supabase
       .from("payments")
       .select("amount")
@@ -55,5 +61,6 @@ export async function GET(request: NextRequest) {
     appointmentsToday: appointmentsToday ?? 0,
     upcomingAppointments: upcomingAppointments ?? 0,
     revenueThisMonth,
+    canceledAppointments: canceledAppointments ?? 0,
   });
 }

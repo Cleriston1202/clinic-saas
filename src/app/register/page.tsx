@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase";
+import { buildAccessTokenCookie } from "@/lib/auth/cookies";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function RegisterPage() {
     } = await supabase.auth.getSession();
 
     if (session?.access_token) {
+      document.cookie = buildAccessTokenCookie(session.access_token);
       const clinicResponse = await fetch("/api/settings/clinic", {
         method: "POST",
         headers: {

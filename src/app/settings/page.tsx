@@ -1,9 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
+
+const parseError = (raw: string) => {
+  try {
+    const parsed = JSON.parse(raw) as { error?: string };
+    return parsed.error ?? raw;
+  } catch {
+    return raw;
+  }
+};
 
 interface ClinicPayload {
   id: string;
@@ -19,16 +28,7 @@ export default function SettingsPage() {
   const [plan, setPlan] = useState("starter");
   const [message, setMessage] = useState("");
 
-  const parseError = (raw: string) => {
-    try {
-      const parsed = JSON.parse(raw) as { error?: string };
-      return parsed.error ?? raw;
-    } catch {
-      return raw;
-    }
-  };
-
-  const loadClinic = async (token: string) => {
+  const loadClinic = useCallback(async (token: string) => {
     const response = await fetch("/api/settings/clinic", {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
@@ -41,7 +41,7 @@ export default function SettingsPage() {
       setName(data.clinic.name);
       setPlan(data.clinic.plan);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (loading) return;
@@ -57,7 +57,7 @@ export default function SettingsPage() {
         router.push("/settings");
       }
     });
-  }, [accessToken, loading, router]);
+  }, [accessToken, loading, loadClinic, router]);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();

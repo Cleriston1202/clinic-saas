@@ -33,7 +33,7 @@ export default function PatientsPage() {
         router.push("/settings");
       }
     }
-  }, [search]);
+  }, [router, search]);
 
   useEffect(() => {
     if (loading) return;

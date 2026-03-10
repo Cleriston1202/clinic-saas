@@ -11,6 +11,7 @@ const initialMetrics: DashboardMetrics = {
   appointmentsToday: 0,
   upcomingAppointments: 0,
   revenueThisMonth: 0,
+  canceledAppointments: 0,
 };
 
 export default function DashboardPage() {
@@ -60,11 +61,12 @@ export default function DashboardPage() {
       <AppNav />
       <h1 className="mb-4 text-2xl font-semibold">Painel</h1>
       {message ? <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">{message}</p> : null}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <MetricCard label="Total de pacientes" value={String(metrics.totalPatients)} />
         <MetricCard label="Consultas de hoje" value={String(metrics.appointmentsToday)} />
         <MetricCard label="Próximas consultas" value={String(metrics.upcomingAppointments)} />
         <MetricCard label="Receita do mês" value={`R$ ${metrics.revenueThisMonth.toFixed(2)}`} />
+        <MetricCard label="Consultas canceladas" value={String(metrics.canceledAppointments)} />
       </div>
     </main>
   );

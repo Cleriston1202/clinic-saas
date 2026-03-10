@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { createSupabaseApiClient } from "@/lib/supabase";
+import { getCurrentClinic } from "@/lib/clinic/getCurrentClinic";
 
 export function getBearerToken(request: NextRequest) {
   const value = request.headers.get("authorization");
@@ -23,15 +24,20 @@ export async function getUserAndClinic(request: NextRequest) {
     return { error: "Não autorizado", status: 401 as const };
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from("users")
-    .select("clinic_id, role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    return { error: profileError.message, status: 400 as const };
+  let clinicContext;
+  try {
+    clinicContext = await getCurrentClinic(supabase, user);
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Falha ao carregar contexto da clinica.",
+      status: 400 as const,
+    };
   }
+
+  const profile = {
+    clinic_id: clinicContext.clinicId,
+    role: clinicContext.role,
+  };
 
   return { supabase, user, profile };
 }
