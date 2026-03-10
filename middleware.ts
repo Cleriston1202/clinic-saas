@@ -4,7 +4,7 @@ import { ACCESS_TOKEN_COOKIE } from "@/lib/auth/cookies";
 
 const MISSING_CSS_MAP_PATH = "/_next/static/css/app/styles.css.map";
 const PUBLIC_PATHS = ["/login", "/register"];
-const PRIVATE_PREFIXES = ["/dashboard", "/patients", "/doctors", "/appointments", "/settings"];
+const PRIVATE_PREFIXES = ["/dashboard", "/patients", "/doctors", "/dentists", "/appointments", "/settings"];
 
 function isPrivatePath(pathname: string) {
   return PRIVATE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -105,6 +105,7 @@ export const config = {
     "/dashboard/:path*",
     "/patients/:path*",
     "/doctors/:path*",
+    "/dentists/:path*",
     "/appointments/:path*",
     "/settings/:path*",
     "/login",

@@ -9,7 +9,7 @@ import { buildAccessTokenCookie } from "@/lib/auth/cookies";
 const links = [
   { href: "/dashboard", label: "Painel" },
   { href: "/patients", label: "Pacientes" },
-  { href: "/doctors", label: "Dentistas" },
+  { href: "/dentists", label: "Dentistas" },
   { href: "/appointments", label: "Consultas" },
   { href: "/settings", label: "Configurações" },
 ];
