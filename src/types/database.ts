@@ -5,6 +5,7 @@ export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 export interface Clinic {
   id: string;
   name: string;
+  slug: string;
   phone: string | null;
   email: string | null;
   plan: string;

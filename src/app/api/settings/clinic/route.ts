@@ -16,6 +16,22 @@ function serviceKeyLooksPublishable() {
   return key.startsWith("sb_publishable_");
 }
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
+function buildClinicSlug(name: string) {
+  const base = slugify(name);
+  if (base) return base;
+  return `clinica-${Date.now().toString().slice(-6)}`;
+}
+
 export async function GET(request: NextRequest) {
   const context = await getUserAndClinic(request);
   if ("error" in context) {
@@ -57,11 +73,20 @@ export async function POST(request: NextRequest) {
   const hasServiceRole = hasPrivilegedServiceKey();
   const primaryClient = hasServiceRole ? createSupabaseAdminClient() : authedSupabase;
 
+  const slugBase = buildClinicSlug(name);
+
   let { data: clinic, error: clinicError } = await primaryClient
     .from("clinics")
-    .insert({ name, plan })
+    .insert({ name, plan, slug: slugBase })
     .select("*")
     .single();
+
+  if (!clinic && clinicError?.message.includes("duplicate key") && clinicError.message.includes("slug")) {
+    const slugWithSuffix = `${slugBase}-${Date.now().toString().slice(-4)}`;
+    const retriedSlugInsert = await primaryClient.from("clinics").insert({ name, plan, slug: slugWithSuffix }).select("*").single();
+    clinic = retriedSlugInsert.data;
+    clinicError = retriedSlugInsert.error;
+  }
 
   const isClinicsRlsError =
     clinicError?.message.includes("row-level security policy") && clinicError.message.includes("clinics");
@@ -69,7 +94,7 @@ export async function POST(request: NextRequest) {
   // In case of transient policy drift, retry bootstrap with service role when available.
   if (!clinic && isClinicsRlsError && hasServiceRole) {
     const serviceClient = createSupabaseAdminClient();
-    const retried = await serviceClient.from("clinics").insert({ name, plan }).select("*").single();
+    const retried = await serviceClient.from("clinics").insert({ name, plan, slug: slugBase }).select("*").single();
     clinic = retried.data;
     clinicError = retried.error;
   }
@@ -142,9 +167,22 @@ export async function PATCH(request: NextRequest) {
   }
 
   const body = await request.json();
+  const nextName = typeof body?.name === "string" ? body.name.trim() : "";
+  const nextPlan = typeof body?.plan === "string" ? body.plan : null;
+  const nextSlug = typeof body?.slug === "string" ? slugify(body.slug) : "";
+
+  const payload: { name?: string; plan?: string; slug?: string } = {};
+  if (nextName) payload.name = nextName;
+  if (nextPlan) payload.plan = nextPlan;
+  if (nextSlug) payload.slug = nextSlug;
+
+  if (!payload.name && !payload.plan && !payload.slug) {
+    return NextResponse.json({ error: "Nenhum campo valido para atualizar." }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from("clinics")
-    .update({ name: body.name, plan: body.plan })
+    .update(payload)
     .eq("id", profile.clinic_id)
     .select("*")
     .single();

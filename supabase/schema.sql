@@ -24,6 +24,7 @@ end $$;
 create table if not exists public.clinics (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  slug text not null unique,
   phone text,
   email text,
   plan text not null default 'starter',
