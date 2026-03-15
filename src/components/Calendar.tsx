@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar as BigCalendar, dateFnsLocalizer, Event, View } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { format, parse, startOfWeek, getDay } from "date-fns";
@@ -49,6 +49,7 @@ const statusLabel: Record<AppointmentStatus, string> = {
   completed: "Concluida",
   canceled: "Cancelada",
 };
+const statusLegendOrder: AppointmentStatus[] = ["scheduled", "confirmed", "completed", "canceled"];
 
 interface ToolbarProps {
   label: string;
@@ -108,6 +109,18 @@ export default function Calendar({ appointments, doctors, onMove, onStatusChange
   const [actionLoading, setActionLoading] = useState(false);
   const [currentView, setCurrentView] = useState<View>("week");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const applyMatch = () => setIsMobile(mediaQuery.matches);
+
+    applyMatch();
+    mediaQuery.addEventListener("change", applyMatch);
+    return () => mediaQuery.removeEventListener("change", applyMatch);
+  }, []);
 
   const doctorColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -132,6 +145,7 @@ export default function Calendar({ appointments, doctors, onMove, onStatusChange
   );
 
   const selectedDoctor = selectedEvent ? doctors.find((doctor) => doctor.id === selectedEvent.doctor_id) : null;
+  const calendarHeight = currentView === "month" ? (isMobile ? 620 : 760) : isMobile ? 540 : 650;
 
   const runAction = async (fn: () => Promise<void>) => {
     setActionLoading(true);
@@ -148,155 +162,189 @@ export default function Calendar({ appointments, doctors, onMove, onStatusChange
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3">
-      <div className="mb-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-        Clique em uma consulta para abrir as acoes. Arraste para mover horario e arraste a borda para ajustar duracao.
-      </div>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div>
+          <div className="mb-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            Clique em uma consulta para abrir as acoes. Arraste para mover horario e arraste a borda para ajustar duracao.
+          </div>
 
-      <DnDCalendar
-        culture="pt-BR"
-        localizer={localizer}
-        events={events}
-        date={currentDate}
-        view={currentView}
-        components={{
-          toolbar: CalendarToolbar,
-        }}
-        views={availableViews}
-        messages={{
-          today: "Hoje",
-          previous: "Anterior",
-          next: "Próximo",
-          month: "Mês",
-          week: "Semana",
-          day: "Dia",
-          agenda: "Agenda",
-          date: "Data",
-          time: "Hora",
-          event: "Evento",
-          noEventsInRange: "Nenhum evento neste período",
-        }}
-        style={{ height: currentView === "month" ? 760 : 650 }}
-        popup
-        onView={(nextView) => setCurrentView(nextView)}
-        onNavigate={(nextDate) => setCurrentDate(nextDate)}
-        onEventDrop={async ({ event, start, end }) => {
-          await runAction(async () => {
-            await onMove((event as CalendarEvent).id, start, end);
-          });
-        }}
-        onEventResize={async ({ event, start, end }) => {
-          await runAction(async () => {
-            await onMove((event as CalendarEvent).id, start, end);
-          });
-        }}
-        onSelectEvent={(event) => {
-          setSelectedEvent(event as CalendarEvent);
-        }}
-        selectable
-        onSelectSlot={() => undefined}
-        eventPropGetter={(event) => ({
-          style: (() => {
-            const calendarEvent = event as CalendarEvent;
-            if (calendarEvent.status === "canceled") {
-              return {
-                backgroundColor: statusPalette.canceled.background,
-                borderRadius: 6,
-                border: `1px dashed ${statusPalette.canceled.border}`,
-                color: statusPalette.canceled.color,
-                opacity: 0.95,
-              };
-            }
+          <div className="calendar-scroll-container overflow-x-auto">
+            <DnDCalendar
+              culture="pt-BR"
+              localizer={localizer}
+              events={events}
+              date={currentDate}
+              view={currentView}
+              className="min-w-[760px] lg:min-w-0"
+              components={{
+                toolbar: CalendarToolbar,
+              }}
+              views={availableViews}
+              messages={{
+                today: "Hoje",
+                previous: "Anterior",
+                next: "Próximo",
+                month: "Mês",
+                week: "Semana",
+                day: "Dia",
+                agenda: "Agenda",
+                date: "Data",
+                time: "Hora",
+                event: "Evento",
+                noEventsInRange: "Nenhum evento neste período",
+              }}
+              style={{ height: calendarHeight }}
+              popup
+              onView={(nextView) => setCurrentView(nextView)}
+              onNavigate={(nextDate) => setCurrentDate(nextDate)}
+              onEventDrop={async ({ event, start, end }) => {
+                await runAction(async () => {
+                  await onMove((event as CalendarEvent).id, start, end);
+                });
+              }}
+              onEventResize={async ({ event, start, end }) => {
+                await runAction(async () => {
+                  await onMove((event as CalendarEvent).id, start, end);
+                });
+              }}
+              onSelectEvent={(event) => {
+                setSelectedEvent(event as CalendarEvent);
+              }}
+              selectable
+              onSelectSlot={() => undefined}
+              eventPropGetter={(event) => ({
+                style: (() => {
+                  const calendarEvent = event as CalendarEvent;
+                  if (calendarEvent.status === "canceled") {
+                    return {
+                      backgroundColor: statusPalette.canceled.background,
+                      borderRadius: 6,
+                      border: `1px dashed ${statusPalette.canceled.border}`,
+                      color: statusPalette.canceled.color,
+                      opacity: 0.95,
+                    };
+                  }
 
-            if (calendarEvent.status === "completed" || calendarEvent.status === "confirmed") {
-              const palette = statusPalette[calendarEvent.status];
-              return {
-                backgroundColor: palette.background,
-                borderRadius: 6,
-                border: `1px solid ${palette.border}`,
-                color: palette.color,
-              };
-            }
+                  if (calendarEvent.status === "completed" || calendarEvent.status === "confirmed") {
+                    const palette = statusPalette[calendarEvent.status];
+                    return {
+                      backgroundColor: palette.background,
+                      borderRadius: 6,
+                      border: `1px solid ${palette.border}`,
+                      color: palette.color,
+                    };
+                  }
 
-            return {
-              backgroundColor: doctorColorMap.get(calendarEvent.doctor_id) ?? "#334155",
-              borderRadius: 6,
-              border: "none",
-              color: statusPalette.scheduled.color,
-            };
-          })(),
-        })}
-      />
-
-      {selectedEvent ? (
-        <div className="mt-3 grid gap-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-          <p className="text-sm font-semibold text-slate-900">{selectedEvent.title}</p>
-          <p className="text-xs text-slate-700">Status: {statusLabel[selectedEvent.status]}</p>
-          <p className="text-xs text-slate-700">
-            Horario: {format(selectedEvent.start, "dd/MM/yyyy HH:mm")} - {format(selectedEvent.end, "HH:mm")}
-          </p>
-          {selectedDoctor ? <p className="text-xs text-slate-700">Especialidade: {selectedDoctor.specialty}</p> : null}
-          {selectedEvent.notes ? <p className="text-xs text-slate-700">Observacoes: {selectedEvent.notes}</p> : null}
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={actionLoading || selectedEvent.status === "confirmed"}
-              onClick={() =>
-                runAction(async () => {
-                  await onStatusChange(selectedEvent.id, "confirmed");
-                })
-              }
-              className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            >
-              Confirmar
-            </button>
-            <button
-              type="button"
-              disabled={actionLoading || selectedEvent.status === "canceled"}
-              onClick={() =>
-                runAction(async () => {
-                  await onStatusChange(selectedEvent.id, "canceled");
-                })
-              }
-              className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              disabled={actionLoading || selectedEvent.status === "completed"}
-              onClick={() =>
-                runAction(async () => {
-                  await onStatusChange(selectedEvent.id, "completed");
-                })
-              }
-              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-            >
-              Concluir
-            </button>
-            <button
-              type="button"
-              disabled={actionLoading || selectedEvent.status === "scheduled"}
-              onClick={() =>
-                runAction(async () => {
-                  await onStatusChange(selectedEvent.id, "scheduled");
-                })
-              }
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 disabled:opacity-60"
-            >
-              Reativar
-            </button>
-            <button
-              type="button"
-              disabled={actionLoading}
-              onClick={() => setSelectedEvent(null)}
-              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 disabled:opacity-60"
-            >
-              Fechar
-            </button>
+                  return {
+                    backgroundColor: doctorColorMap.get(calendarEvent.doctor_id) ?? "#334155",
+                    borderRadius: 6,
+                    border: "none",
+                    color: statusPalette.scheduled.color,
+                  };
+                })(),
+              })}
+            />
           </div>
         </div>
-      ) : null}
+
+        <aside className="rounded-md border border-slate-200 bg-slate-50 p-3 lg:sticky lg:top-3">
+          <h2 className="text-sm font-semibold text-slate-900">Status da agenda</h2>
+          <div className="mt-2 grid gap-2">
+            {statusLegendOrder.map((status) => {
+              const palette = statusPalette[status];
+              const isCanceled = status === "canceled";
+
+              return (
+                <div key={status} className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700">
+                  <span>{statusLabel[status]}</span>
+                  <span
+                    className="h-3 w-8 rounded-full"
+                    style={{
+                      backgroundColor: palette.background || "#334155",
+                      border: isCanceled ? `1px dashed ${palette.border}` : `1px solid ${palette.border || "#334155"}`,
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {selectedEvent ? (
+            <div className="mt-3 grid gap-2 rounded-md border border-slate-200 bg-white p-3">
+              <p className="text-sm font-semibold text-slate-900">{selectedEvent.title}</p>
+              <p className="text-xs text-slate-700">Status: {statusLabel[selectedEvent.status]}</p>
+              <p className="text-xs text-slate-700">
+                Horario: {format(selectedEvent.start, "dd/MM/yyyy HH:mm")} - {format(selectedEvent.end, "HH:mm")}
+              </p>
+              {selectedDoctor ? <p className="text-xs text-slate-700">Especialidade: {selectedDoctor.specialty}</p> : null}
+              {selectedEvent.notes ? <p className="text-xs text-slate-700">Observacoes: {selectedEvent.notes}</p> : null}
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={actionLoading || selectedEvent.status === "confirmed"}
+                  onClick={() =>
+                    runAction(async () => {
+                      await onStatusChange(selectedEvent.id, "confirmed");
+                    })
+                  }
+                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading || selectedEvent.status === "canceled"}
+                  onClick={() =>
+                    runAction(async () => {
+                      await onStatusChange(selectedEvent.id, "canceled");
+                    })
+                  }
+                  className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading || selectedEvent.status === "completed"}
+                  onClick={() =>
+                    runAction(async () => {
+                      await onStatusChange(selectedEvent.id, "completed");
+                    })
+                  }
+                  className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                >
+                  Concluir
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading || selectedEvent.status === "scheduled"}
+                  onClick={() =>
+                    runAction(async () => {
+                      await onStatusChange(selectedEvent.id, "scheduled");
+                    })
+                  }
+                  className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 disabled:opacity-60"
+                >
+                  Reativar
+                </button>
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => setSelectedEvent(null)}
+                  className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 disabled:opacity-60"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-md border border-dashed border-slate-300 bg-white px-3 py-4 text-xs text-slate-600">
+              Selecione uma consulta no calendario para ver detalhes e alterar status.
+            </div>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }

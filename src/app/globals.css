@@ -76,3 +76,41 @@ button {
   border-radius: 0.85rem;
   background: color-mix(in srgb, var(--surface) 90%, var(--surface-soft) 10%);
 }
+
+@media (max-width: 1023px) {
+  .calendar-scroll-container {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rbc-toolbar {
+    gap: 0.5rem;
+  }
+
+  .rbc-header {
+    padding: 0.3rem 0.2rem;
+    font-size: 0.72rem;
+  }
+
+  .rbc-time-gutter,
+  .rbc-time-header-gutter {
+    font-size: 0.68rem;
+  }
+
+  .rbc-event,
+  .rbc-day-slot .rbc-event {
+    font-size: 0.7rem;
+    line-height: 1.1;
+  }
+}
+
+@media (max-width: 640px) {
+  .rbc-btn-group button {
+    min-height: 2rem;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .rbc-toolbar-label {
+    font-size: 0.78rem;
+  }
+}
