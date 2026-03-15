@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserAndClinic } from "@/app/api/_utils";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function dayBounds() {
   const now = new Date();
@@ -23,32 +24,48 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: context.error }, { status: context.status });
   }
 
-  const supabase = context.supabase;
+  if (!context.profile.clinic_id) {
+    return NextResponse.json({ error: "Clinic profile not initialized." }, { status: 400 });
+  }
+
+  let adminSupabase: ReturnType<typeof createSupabaseAdminClient> | null = null;
+  try {
+    adminSupabase = createSupabaseAdminClient();
+  } catch {
+    adminSupabase = null;
+  }
+
+  const clinicId = context.profile.clinic_id;
+  const supabase = adminSupabase ?? context.supabase;
   const today = dayBounds();
   const month = monthBounds();
   const now = new Date().toISOString();
 
   const [{ count: totalPatients }, { count: appointmentsToday }, { count: upcomingAppointments }, { count: canceledAppointments }, paymentsResult] = await Promise.all([
-    supabase.from("patients").select("id", { count: "exact", head: true }),
+    supabase.from("patients").select("id", { count: "exact", head: true }).eq("clinic_id", clinicId),
     supabase
       .from("appointments")
       .select("id", { count: "exact", head: true })
+      .eq("clinic_id", clinicId)
       .gte("start_time", today.start)
       .lte("start_time", today.end),
     supabase
       .from("appointments")
       .select("id", { count: "exact", head: true })
+      .eq("clinic_id", clinicId)
       .gte("start_time", now)
       .neq("status", "canceled"),
     supabase
       .from("appointments")
       .select("id", { count: "exact", head: true })
+      .eq("clinic_id", clinicId)
       .eq("status", "canceled")
       .gte("start_time", month.start)
       .lte("start_time", month.end),
     supabase
       .from("payments")
       .select("amount")
+      .eq("clinic_id", clinicId)
       .eq("status", "paid")
       .gte("created_at", month.start)
       .lte("created_at", month.end),

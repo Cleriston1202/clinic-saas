@@ -16,16 +16,6 @@ export interface CurrentClinicContext {
 }
 
 export async function getCurrentClinic(supabase: SupabaseClient, user: User): Promise<CurrentClinicContext> {
-  const { data: member, error: memberError } = await supabase
-    .from("clinic_members")
-    .select("clinic_id,role")
-    .eq("user_id", user.id)
-    .maybeSingle<MemberRow>();
-
-  if (!memberError && member?.clinic_id) {
-    return { clinicId: member.clinic_id, role: member.role };
-  }
-
   const { data: legacyProfile, error: legacyError } = await supabase
     .from("users")
     .select("clinic_id,role")
@@ -34,6 +24,25 @@ export async function getCurrentClinic(supabase: SupabaseClient, user: User): Pr
 
   if (legacyError) {
     throw new Error(legacyError.message);
+  }
+
+  if (legacyProfile?.clinic_id) {
+    return {
+      clinicId: legacyProfile.clinic_id,
+      role: legacyProfile.role ?? null,
+    };
+  }
+
+  const { data: member, error: memberError } = await supabase
+    .from("clinic_members")
+    .select("clinic_id,role")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<MemberRow>();
+
+  if (!memberError && member?.clinic_id) {
+    return { clinicId: member.clinic_id, role: member.role };
   }
 
   return {

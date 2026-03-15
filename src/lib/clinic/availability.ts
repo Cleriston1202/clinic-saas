@@ -35,7 +35,7 @@ export async function getAvailableSlots(clinicId: string, professionalId: string
     .or(`professional_id.eq.${professionalId},doctor_id.eq.${professionalId}`)
     .gte("start_time", dayStart.toISOString())
     .lte("start_time", dayEnd.toISOString())
-    .neq("status", "canceled");
+    .in("status", ["scheduled", "confirmed"]);
 
   if (error) {
     throw new Error(error.message);

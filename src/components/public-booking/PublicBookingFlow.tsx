@@ -152,7 +152,7 @@ export default function PublicBookingFlow({ clinic, services, professionals, cre
 
       setError("");
       router.push(
-        `/confirmacao-agendamento?clinic=${encodeURIComponent(clinic.name)}&appointment=${encodeURIComponent(result.appointmentId ?? "")}&message=${encodeURIComponent(result.message)}`,
+        `/confirmacao-agendamento?clinic=${encodeURIComponent(clinic.name)}&clinicSlug=${encodeURIComponent(clinic.slug)}&appointment=${encodeURIComponent(result.appointmentId ?? "")}&message=${encodeURIComponent(result.message)}`,
       );
     });
   };
@@ -218,7 +218,14 @@ export default function PublicBookingFlow({ clinic, services, professionals, cre
           <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Resumo</h2>
           <div className="mt-3 space-y-3 text-sm">
             <SummaryItem label="Clinica" value={clinic.name} />
-            <SummaryItem label="Servico" value={selectedService ? `${selectedService.name} (${selectedService.duration_minutes} min)` : "Nao selecionado"} />
+            <SummaryItem
+              label="Servico"
+              value={
+                selectedService
+                  ? `${selectedService.name} | Valor: R$ ${Number(selectedService.price).toFixed(2)} | Tempo: ${selectedService.duration_minutes} min`
+                  : "Nao selecionado"
+              }
+            />
             <SummaryItem label="Dentista" value={selectedProfessional ? selectedProfessional.name : "Nao selecionado"} />
             <SummaryItem label="Data" value={date || "Nao selecionada"} />
             <SummaryItem label="Horario" value={slotStart ? new Date(slotStart).toLocaleString("pt-BR") : "Nao selecionado"} />

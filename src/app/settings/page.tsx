@@ -198,33 +198,56 @@ export default function SettingsPage() {
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <form onSubmit={handleServiceSubmit} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
           <h2 className="text-sm font-semibold">{editingServiceId ? "Editar serviço" : "Criar serviço"}</h2>
-          <input
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            placeholder="Nome do serviço"
-            value={serviceName}
-            onChange={(e) => setServiceName(e.target.value)}
-            required
-          />
-          <input
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="Preço"
-            value={servicePrice}
-            onChange={(e) => setServicePrice(e.target.value)}
-            required
-          />
-          <input
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-            type="number"
-            min="5"
-            step="5"
-            placeholder="Duração em minutos"
-            value={serviceDuration}
-            onChange={(e) => setServiceDuration(e.target.value)}
-            required
-          />
+          <p className="text-xs text-slate-500">Preencha separadamente quanto cobrar (valor) e quanto tempo leva (duração).</p>
+
+          <label className="grid gap-1 text-sm text-slate-700">
+            <span className="font-medium">Nome do serviço</span>
+            <input
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+              placeholder="Ex: Limpeza completa"
+              value={serviceName}
+              onChange={(e) => setServiceName(e.target.value)}
+              required
+            />
+          </label>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="grid gap-1 text-sm text-slate-700">
+              <span className="font-medium">Valor do serviço (R$)</span>
+              <div className="flex items-center rounded-md border border-slate-300 bg-white px-3 py-2">
+                <span className="mr-2 text-sm text-slate-500">R$</span>
+                <input
+                  className="w-full border-0 p-0 text-sm focus:outline-none"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={servicePrice}
+                  onChange={(e) => setServicePrice(e.target.value)}
+                  required
+                />
+              </div>
+              <span className="text-xs text-slate-500">Quanto o paciente vai pagar.</span>
+            </label>
+
+            <label className="grid gap-1 text-sm text-slate-700">
+              <span className="font-medium">Tempo do serviço (minutos)</span>
+              <div className="flex items-center rounded-md border border-slate-300 bg-white px-3 py-2">
+                <input
+                  className="w-full border-0 p-0 text-sm focus:outline-none"
+                  type="number"
+                  min="5"
+                  step="5"
+                  placeholder="30"
+                  value={serviceDuration}
+                  onChange={(e) => setServiceDuration(e.target.value)}
+                  required
+                />
+                <span className="ml-2 text-sm text-slate-500">min</span>
+              </div>
+              <span className="text-xs text-slate-500">Tempo médio ocupado na agenda.</span>
+            </label>
+          </div>
           <div className="flex gap-2">
             <button className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white">
               {editingServiceId ? "Salvar alterações" : "Adicionar serviço"}
@@ -249,7 +272,10 @@ export default function SettingsPage() {
             {services.map((service) => (
               <div key={service.id} className="rounded-md border border-slate-200 px-3 py-2">
                 <p className="text-sm font-medium text-slate-900">{service.name}</p>
-                <p className="text-sm text-slate-500">R$ {Number(service.price).toFixed(2)} · {service.duration_minutes} min</p>
+                <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-800">Valor: R$ {Number(service.price).toFixed(2)}</span>
+                  <span className="rounded-full bg-sky-50 px-2 py-1 text-sky-800">Tempo: {service.duration_minutes} min</span>
+                </div>
                 <button
                   type="button"
                   onClick={() => {

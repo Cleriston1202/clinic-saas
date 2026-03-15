@@ -18,11 +18,16 @@ export async function createPublicAppointment(formData: FormData): Promise<Creat
   const date = String(formData.get("date") ?? "").trim();
   const slotStart = String(formData.get("slotStart") ?? "").trim();
   const patientName = String(formData.get("patientName") ?? "").trim();
-  const patientPhone = String(formData.get("patientPhone") ?? "").trim();
+  const rawPatientPhone = String(formData.get("patientPhone") ?? "").trim();
+  const patientPhone = rawPatientPhone.replace(/\D+/g, "");
   const patientEmail = String(formData.get("patientEmail") ?? "").trim().toLowerCase();
 
   if (!clinicSlug || !serviceId || !professionalId || !date || !slotStart || !patientName || !patientPhone) {
     return { ok: false, message: "Preencha todos os campos obrigatorios para concluir o agendamento." };
+  }
+
+  if (patientPhone.length < 10) {
+    return { ok: false, message: "Telefone invalido. Informe DDD e numero." };
   }
 
   if (patientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientEmail)) {
@@ -70,25 +75,32 @@ export async function createPublicAppointment(formData: FormData): Promise<Creat
   }
 
   let patientId: string | null = null;
+  let patientRecord: { id: string; name: string; phone: string | null; email: string | null } | null = null;
+
+  let existingByEmail: { id: string; name: string; phone: string | null; email: string | null } | null = null;
   if (patientEmail) {
-    const { data: existingByEmail } = await supabase
+    const { data } = await supabase
       .from("patients")
-      .select("id")
+      .select("id,name,phone,email")
       .eq("clinic_id", clinic.id)
       .ilike("email", patientEmail)
-      .maybeSingle<{ id: string }>();
-    patientId = existingByEmail?.id ?? null;
+      .maybeSingle<{ id: string; name: string; phone: string | null; email: string | null }>();
+    existingByEmail = data ?? null;
   }
 
-  if (!patientId) {
-    const { data: existingByPhone } = await supabase
-      .from("patients")
-      .select("id")
-      .eq("clinic_id", clinic.id)
-      .eq("phone", patientPhone)
-      .maybeSingle<{ id: string }>();
-    patientId = existingByPhone?.id ?? null;
+  const { data: existingByPhone } = await supabase
+    .from("patients")
+    .select("id,name,phone,email")
+    .eq("clinic_id", clinic.id)
+    .eq("phone", patientPhone)
+    .maybeSingle<{ id: string; name: string; phone: string | null; email: string | null }>();
+
+  if (existingByEmail && existingByPhone && existingByEmail.id !== existingByPhone.id) {
+    return { ok: false, message: "Ja existe conflito entre email e telefone em cadastros diferentes. Contate a clinica." };
   }
+
+  patientRecord = existingByEmail ?? existingByPhone ?? null;
+  patientId = patientRecord?.id ?? null;
 
   if (!patientId) {
     const { data: createdPatient, error: patientError } = await supabase
@@ -99,14 +111,37 @@ export async function createPublicAppointment(formData: FormData): Promise<Creat
         phone: patientPhone,
         email: patientEmail || null,
       })
-      .select("id")
-      .single<{ id: string }>();
+      .select("id,name,phone,email")
+      .single<{ id: string; name: string; phone: string | null; email: string | null }>();
 
     if (patientError || !createdPatient) {
       return { ok: false, message: patientError?.message ?? "Falha ao criar paciente." };
     }
 
     patientId = createdPatient.id;
+    patientRecord = createdPatient;
+  } else if (patientRecord) {
+    const nextName = patientName;
+    const nextPhone = patientPhone;
+    const nextEmail = patientEmail || patientRecord.email;
+
+    const shouldUpdate = patientRecord.name !== nextName || (patientRecord.phone ?? "") !== nextPhone || (patientRecord.email ?? "") !== (nextEmail ?? "");
+
+    if (shouldUpdate) {
+      const { error: updatePatientError } = await supabase
+        .from("patients")
+        .update({
+          name: nextName,
+          phone: nextPhone,
+          email: nextEmail,
+        })
+        .eq("id", patientId)
+        .eq("clinic_id", clinic.id);
+
+      if (updatePatientError) {
+        return { ok: false, message: updatePatientError.message };
+      }
+    }
   }
 
   const { data: appointment, error: appointmentError } = await supabase

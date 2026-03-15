@@ -1,36 +1,161 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Clinica SaaS
 
-## Getting Started
+Aplicacao Next.js para gestao de clinica odontologica, com agenda, pacientes, servicos e agendamento publico.
 
-First, run the development server:
+## Setup rapido
+
+1. Instale dependencias:
+
+```bash
+npm install
+```
+
+2. Copie o arquivo de ambiente:
+
+```bash
+cp .env.example .env
+```
+
+No Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+3. Preencha as variaveis do Supabase no `.env`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+4. Rode o projeto:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Configuracao do WhatsApp
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+O envio de lembrete usa `src/lib/whatsapp.ts` e suporta 3 provedores:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `zapi`
+- `evolution`
+- `twilio`
 
-## Learn More
+Defina no `.env`:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+WHATSAPP_PROVIDER=zapi
+WHATSAPP_API_URL=
+WHATSAPP_INSTANCE_ID=
+WHATSAPP_TOKEN=
+WHATSAPP_CLIENT_TOKEN=
+WHATSAPP_FROM=
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1) Z-API
 
-## Deploy on Vercel
+Use:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+WHATSAPP_PROVIDER=zapi
+WHATSAPP_API_URL=https://api.z-api.io
+WHATSAPP_INSTANCE_ID=<instance-id>
+WHATSAPP_TOKEN=<token>
+WHATSAPP_CLIENT_TOKEN=<client-token-opcional>
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`WHATSAPP_FROM` nao e necessario no modo `zapi`.
+Se sua conta exigir `client-token`, preencha `WHATSAPP_CLIENT_TOKEN`.
+
+### 2) Evolution API
+
+Use:
+
+```env
+WHATSAPP_PROVIDER=evolution
+WHATSAPP_API_URL=http://localhost:8080
+WHATSAPP_INSTANCE_ID=<nome-ou-id-da-instancia>
+WHATSAPP_TOKEN=<apikey>
+```
+
+`WHATSAPP_FROM` nao e necessario no modo `evolution`.
+
+### 3) Twilio WhatsApp
+
+Use:
+
+```env
+WHATSAPP_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=<AC...>
+TWILIO_AUTH_TOKEN=<token>
+WHATSAPP_FROM=+14155238886
+```
+
+Observacao: `WHATSAPP_FROM` deve ser o numero/sender habilitado no Twilio (com codigo do pais).
+
+## Lembretes automaticos (cron)
+
+A rota de lembrete e:
+
+- `GET /api/cron/reminders`
+
+Ela valida cabecalho com segredo:
+
+```env
+CRON_SECRET=<seu-segredo>
+```
+
+No deploy com Vercel, o agendamento esta em `vercel.json` para rodar a cada 10 minutos.
+
+## Teste manual do lembrete
+
+Com app rodando, teste no terminal:
+
+```powershell
+Invoke-RestMethod -Method GET -Uri "http://localhost:3000/api/cron/reminders" -Headers @{ Authorization = "Bearer $env:CRON_SECRET" }
+```
+
+Resposta esperada:
+
+- `checked`: quantos agendamentos foram avaliados
+- `sent`: quantas mensagens foram enviadas
+- `failures`: lista de falhas por `appointment.id`
+
+## Teste manual de WhatsApp (direto)
+
+Para validar o provedor sem depender da janela de 2h/24h, use:
+
+- `POST /api/whatsapp/test`
+
+Exemplo PowerShell:
+
+```powershell
+$secret = (Get-Content .env | Where-Object { $_ -match '^CRON_SECRET=' } | Select-Object -First 1).Split('=')[1]
+
+Invoke-RestMethod -Method POST -Uri "http://localhost:3000/api/whatsapp/test" `
+	-Headers @{ Authorization = "Bearer $secret"; "Content-Type" = "application/json" } `
+	-Body '{"to":"5511999998888","message":"Teste de envio WhatsApp da Clinica SaaS"}'
+```
+
+Se a porta `3000` estiver ocupada, troque para `3001` no comando.
+
+## Formato de telefone recomendado
+
+Para reduzir falhas de entrega, salve telefone dos pacientes com DDI, por exemplo:
+
+- `5511999998888`
+- `+5511999998888`
+
+## Troubleshooting rapido
+
+- `Credenciais da Z-API nao configuradas`: falta `WHATSAPP_API_URL`, `WHATSAPP_INSTANCE_ID` ou `WHATSAPP_TOKEN`.
+- Erro `your client-token is not configured`: preencha `WHATSAPP_CLIENT_TOKEN` no `.env`.
+- `Credenciais da Evolution API nao configuradas`: falta `WHATSAPP_API_URL`, `WHATSAPP_INSTANCE_ID` ou `WHATSAPP_TOKEN`.
+- `Credenciais do Twilio nao configuradas`: falta `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` ou `WHATSAPP_FROM`.
+- Se `sent` ficar `0` com `checked > 0`, confira se ha consultas na janela de 24h ou 2h.

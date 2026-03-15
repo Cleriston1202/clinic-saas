@@ -27,14 +27,22 @@ async function sendViaZApi(payload: ReminderPayload) {
   const baseUrl = process.env.WHATSAPP_API_URL;
   const token = process.env.WHATSAPP_TOKEN;
   const instanceId = process.env.WHATSAPP_INSTANCE_ID;
+  const rawClientToken = process.env.WHATSAPP_CLIENT_TOKEN ?? "";
+  const clientToken = rawClientToken.trim().replace(/^['\"]|['\"]$/g, "");
 
   if (!baseUrl || !token || !instanceId) {
     return { ok: false, error: "Credenciais da Z-API não configuradas" };
   }
 
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (clientToken) {
+    headers["Client-Token"] = clientToken;
+    headers["client-token"] = clientToken;
+  }
+
   const response = await fetch(`${baseUrl}/instances/${instanceId}/token/${token}/send-text`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ phone: payload.to, message: payload.message }),
   });
 

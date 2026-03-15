@@ -37,6 +37,12 @@ interface CalendarProps {
 }
 
 const doctorPalette = ["#2563eb", "#059669", "#d97706", "#dc2626", "#7c3aed", "#0891b2"];
+const statusPalette: Record<AppointmentStatus, { background: string; border: string; color: string }> = {
+  scheduled: { background: "", border: "", color: "#ffffff" },
+  confirmed: { background: "#065f46", border: "#065f46", color: "#ffffff" },
+  completed: { background: "#312e81", border: "#312e81", color: "#ffffff" },
+  canceled: { background: "#e2e8f0", border: "#94a3b8", color: "#334155" },
+};
 const statusLabel: Record<AppointmentStatus, string> = {
   scheduled: "Agendada",
   confirmed: "Confirmada",
@@ -50,6 +56,8 @@ interface ToolbarProps {
   onView: (view: View) => void;
   view: View;
 }
+
+const availableViews: View[] = ["day", "week", "month"];
 
 function CalendarToolbar({ label, onNavigate, onView, view }: ToolbarProps) {
   return (
@@ -69,6 +77,13 @@ function CalendarToolbar({ label, onNavigate, onView, view }: ToolbarProps) {
       <p className="text-sm font-semibold text-slate-900">{label}</p>
 
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onView("month")}
+          className={`rounded-md px-3 py-1.5 text-sm ${view === "month" ? "bg-slate-900 text-white" : "border border-slate-300 text-slate-700 hover:bg-slate-50"}`}
+        >
+          Mes
+        </button>
         <button
           type="button"
           onClick={() => onView("day")}
@@ -91,6 +106,8 @@ function CalendarToolbar({ label, onNavigate, onView, view }: ToolbarProps) {
 export default function Calendar({ appointments, doctors, onMove, onStatusChange, onError }: CalendarProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [currentView, setCurrentView] = useState<View>("week");
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const doctorColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -139,11 +156,12 @@ export default function Calendar({ appointments, doctors, onMove, onStatusChange
         culture="pt-BR"
         localizer={localizer}
         events={events}
+        date={currentDate}
+        view={currentView}
         components={{
           toolbar: CalendarToolbar,
         }}
-        defaultView={"week" as View}
-        views={["day", "week"]}
+        views={availableViews}
         messages={{
           today: "Hoje",
           previous: "Anterior",
@@ -157,7 +175,10 @@ export default function Calendar({ appointments, doctors, onMove, onStatusChange
           event: "Evento",
           noEventsInRange: "Nenhum evento neste período",
         }}
-        style={{ height: 650 }}
+        style={{ height: currentView === "month" ? 760 : 650 }}
+        popup
+        onView={(nextView) => setCurrentView(nextView)}
+        onNavigate={(nextDate) => setCurrentDate(nextDate)}
         onEventDrop={async ({ event, start, end }) => {
           await runAction(async () => {
             await onMove((event as CalendarEvent).id, start, end);
@@ -174,11 +195,35 @@ export default function Calendar({ appointments, doctors, onMove, onStatusChange
         selectable
         onSelectSlot={() => undefined}
         eventPropGetter={(event) => ({
-          style: {
-            backgroundColor: doctorColorMap.get((event as CalendarEvent).doctor_id) ?? "#334155",
-            borderRadius: 6,
-            border: "none",
-          },
+          style: (() => {
+            const calendarEvent = event as CalendarEvent;
+            if (calendarEvent.status === "canceled") {
+              return {
+                backgroundColor: statusPalette.canceled.background,
+                borderRadius: 6,
+                border: `1px dashed ${statusPalette.canceled.border}`,
+                color: statusPalette.canceled.color,
+                opacity: 0.95,
+              };
+            }
+
+            if (calendarEvent.status === "completed" || calendarEvent.status === "confirmed") {
+              const palette = statusPalette[calendarEvent.status];
+              return {
+                backgroundColor: palette.background,
+                borderRadius: 6,
+                border: `1px solid ${palette.border}`,
+                color: palette.color,
+              };
+            }
+
+            return {
+              backgroundColor: doctorColorMap.get(calendarEvent.doctor_id) ?? "#334155",
+              borderRadius: 6,
+              border: "none",
+              color: statusPalette.scheduled.color,
+            };
+          })(),
         })}
       />
 
