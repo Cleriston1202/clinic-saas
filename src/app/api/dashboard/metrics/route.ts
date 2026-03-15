@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserAndClinic } from "@/app/api/_utils";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const weekdayFormatter = new Intl.DateTimeFormat("pt-BR", { weekday: "short" });
 const monthFormatter = new Intl.DateTimeFormat("pt-BR", { month: "short" });
 

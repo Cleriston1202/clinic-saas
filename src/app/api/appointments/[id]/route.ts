@@ -110,15 +110,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     if (existingPayment) {
-      const shouldRefreshPaidAt = existingPayment.status !== "paid";
       const paymentPayload: Record<string, unknown> = {
         amount: servicePrice > 0 ? servicePrice : Number(existingPayment.amount ?? 0),
         status: "paid",
+        created_at: paymentTimestamp,
       };
-
-      if (shouldRefreshPaidAt) {
-        paymentPayload.created_at = paymentTimestamp;
-      }
 
       const { error: paymentUpdateError } = await context.supabase
         .from("payments")
