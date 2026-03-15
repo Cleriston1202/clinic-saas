@@ -46,7 +46,7 @@ export default function PatientsPage() {
   }, [accessToken, loading, loadPatients, router]);
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-6">
+    <main className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
       <AppNav />
       <h1 className="mb-4 text-2xl font-semibold">Pacientes</h1>
       {message ? <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">{message}</p> : null}

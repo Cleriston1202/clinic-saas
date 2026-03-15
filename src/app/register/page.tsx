@@ -59,7 +59,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
+    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 sm:px-6">
       <form onSubmit={handleSubmit} className="surface-card w-full space-y-3 rounded-2xl p-6">
         <p className="inline-flex rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-700">Primeiro acesso</p>
         <h1 className="text-3xl font-bold">Cadastrar Clinica</h1>

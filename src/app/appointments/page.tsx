@@ -7,7 +7,7 @@ import AppointmentForm from "@/components/AppointmentForm";
 import Calendar from "@/components/Calendar";
 import { useSupabaseSession } from "@/hooks/useSupabaseSession";
 import { appointmentService } from "@/services/appointmentService";
-import { Doctor, Patient, Appointment } from "@/types/database";
+import { Doctor, Patient, Appointment, Service } from "@/types/database";
 
 const parseError = (raw: string) => {
   try {
@@ -23,22 +23,26 @@ export default function AppointmentsPage() {
   const { accessToken, loading } = useSupabaseSession();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [message, setMessage] = useState("");
 
   const loadAll = useCallback(async (token: string) => {
     try {
-      const [patientsRes, doctorsRes, appointmentsRes] = await Promise.all([
+      const [patientsRes, doctorsRes, servicesRes, appointmentsRes] = await Promise.all([
         fetch("/api/patients", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }),
         fetch("/api/doctors", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }),
+        fetch("/api/services", { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }),
         appointmentService.list(token),
       ]);
 
       if (!patientsRes.ok) throw new Error(parseError(await patientsRes.text()));
       if (!doctorsRes.ok) throw new Error(parseError(await doctorsRes.text()));
+      if (!servicesRes.ok) throw new Error(parseError(await servicesRes.text()));
 
       setPatients(await patientsRes.json());
       setDoctors(await doctorsRes.json());
+      setServices(await servicesRes.json());
       setAppointments(appointmentsRes);
       setMessage("");
     } catch (error) {
@@ -61,7 +65,7 @@ export default function AppointmentsPage() {
   }, [accessToken, loading, loadAll, router]);
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-6">
+    <main className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
       <AppNav />
       <h1 className="mb-4 text-2xl font-semibold">Consultas</h1>
       {message ? <p className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">{message}</p> : null}
@@ -70,6 +74,7 @@ export default function AppointmentsPage() {
         <AppointmentForm
           patients={patients}
           doctors={doctors}
+          services={services}
           onCreate={async (payload) => {
             if (!accessToken) {
               const next = "Sessao expirada. Faca login novamente.";

@@ -84,10 +84,19 @@ export interface Payment {
   created_at: string;
 }
 
+export interface DashboardChartPoint {
+  label: string;
+  value: number;
+  color?: string;
+}
+
 export interface DashboardMetrics {
   totalPatients: number;
   appointmentsToday: number;
   upcomingAppointments: number;
   revenueThisMonth: number;
   canceledAppointments: number;
+  weeklyAppointments: DashboardChartPoint[];
+  statusBreakdown: DashboardChartPoint[];
+  revenueTrend: DashboardChartPoint[];
 }

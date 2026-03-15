@@ -154,7 +154,7 @@ export default function SettingsPage() {
   const publicUrl = clinic?.slug ? `${origin}/agendar/${clinic.slug}` : "";
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-6">
+    <main className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 sm:py-6">
       <AppNav />
       <h1 className="mb-4 text-2xl font-semibold">Configurações</h1>
 

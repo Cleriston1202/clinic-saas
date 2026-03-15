@@ -1,23 +1,26 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Doctor, Patient } from "@/types/database";
+import { Doctor, Patient, Service } from "@/types/database";
 
 interface AppointmentFormProps {
   patients: Patient[];
   doctors: Doctor[];
+  services: Service[];
   onCreate: (payload: {
     patient_id: string;
     doctor_id: string;
     start_time: string;
     end_time: string;
     notes: string;
+    service_id?: string;
   }) => Promise<void>;
 }
 
-export default function AppointmentForm({ patients, doctors, onCreate }: AppointmentFormProps) {
+export default function AppointmentForm({ patients, doctors, services, onCreate }: AppointmentFormProps) {
   const [patientId, setPatientId] = useState("");
   const [doctorId, setDoctorId] = useState("");
+  const [serviceId, setServiceId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [startHour, setStartHour] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -26,9 +29,11 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
   const [formError, setFormError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const selectedService = useMemo(() => services.find((service) => service.id === serviceId) ?? null, [serviceId, services]);
+
   const canSubmit = useMemo(
-    () => Boolean(patientId && doctorId && startDate && startHour && endDate && endHour),
-    [patientId, doctorId, startDate, startHour, endDate, endHour],
+    () => Boolean(patientId && doctorId && startDate && startHour && endDate && endHour && serviceId),
+    [patientId, doctorId, startDate, startHour, endDate, endHour, serviceId],
   );
 
   const buildDateTime = (date: string, time: string) => {
@@ -90,6 +95,10 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
       setFormError("Selecione um dentista.");
       return;
     }
+    if (!serviceId) {
+      setFormError("Selecione um servico para registrar o valor da consulta.");
+      return;
+    }
     if (!startDate || !startHour || !endDate || !endHour) {
       setFormError("Preencha inicio e fim da consulta.");
       return;
@@ -116,9 +125,11 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
         start_time: parsedStart.toISOString(),
         end_time: parsedEnd.toISOString(),
         notes,
+        service_id: serviceId,
       });
       setPatientId("");
       setDoctorId("");
+      setServiceId("");
       setStartDate("");
       setStartHour("");
       setEndDate("");
@@ -176,6 +187,35 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
             {doctor.name} - {doctor.specialty}
           </option>
         ))}
+        </select>
+      </label>
+
+      <label className="grid gap-1 text-sm text-slate-700">
+        Servico
+        <select
+          className="rounded-md border border-slate-300 px-3 py-2 text-sm"
+          value={serviceId}
+          onChange={(e) => {
+            setServiceId(e.target.value);
+            setFormError("");
+
+            const nextService = services.find((service) => service.id === e.target.value);
+            const parsedStart = buildDateTime(startDate, startHour);
+            if (nextService && parsedStart) {
+              const suggestedEnd = new Date(parsedStart.getTime() + nextService.duration_minutes * 60000);
+              setEndDate(suggestedEnd.toISOString().slice(0, 10));
+              setEndHour(suggestedEnd.toTimeString().slice(0, 5));
+            }
+          }}
+          disabled={services.length === 0}
+          required
+        >
+          <option value="">Selecione o servico</option>
+          {services.map((service) => (
+            <option key={service.id} value={service.id}>
+              {service.name} | R$ {Number(service.price).toFixed(2)} | {service.duration_minutes} min
+            </option>
+          ))}
         </select>
       </label>
 
@@ -257,13 +297,15 @@ export default function AppointmentForm({ patients, doctors, onCreate }: Appoint
 
       {scheduleSummary ? <p className="text-xs text-slate-700">Agendado para: {scheduleSummary}</p> : null}
 
-      {patients.length === 0 || doctors.length === 0 ? (
-        <p className="text-xs text-slate-600">Para criar consulta, cadastre pelo menos 1 paciente e 1 dentista.</p>
+      {selectedService ? <p className="text-xs text-slate-700">Servico selecionado: {selectedService.name} | Valor: R$ {Number(selectedService.price).toFixed(2)} | Duracao: {selectedService.duration_minutes} min</p> : null}
+
+      {patients.length === 0 || doctors.length === 0 || services.length === 0 ? (
+        <p className="text-xs text-slate-600">Para criar consulta, cadastre pelo menos 1 paciente, 1 dentista e 1 servico.</p>
       ) : null}
 
       {durationLabel ? <p className="text-xs font-medium text-slate-700">{durationLabel}</p> : null}
 
-      {!canSubmit ? <p className="text-xs text-slate-500">Preencha todos os campos obrigatorios para habilitar o envio.</p> : null}
+      {!canSubmit ? <p className="text-xs text-slate-500">Preencha todos os campos obrigatorios, incluindo o servico, para habilitar o envio.</p> : null}
 
       <button type="submit" disabled={loading} className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white disabled:opacity-60">
         {loading ? "Criando..." : "Criar consulta"}

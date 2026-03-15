@@ -11,6 +11,19 @@ do $$
 begin
   if not exists (select 1 from pg_type where typnamespace = 'public'::regnamespace and typname = 'appointment_status') then
     create type public.appointment_status as enum ('scheduled', 'confirmed', 'completed', 'canceled');
+  else
+    begin
+      alter type public.appointment_status add value if not exists 'completed';
+    exception
+      when others then
+        null;
+    end;
+    begin
+      alter type public.appointment_status add value if not exists 'canceled';
+    exception
+      when others then
+        null;
+    end;
   end if;
 end $$;
 
